@@ -19,9 +19,10 @@ const char* Zeitkit::fileZeitkit = ".zeitkit";
 const char* Zeitkit::pathWorklogs = "worklogs";
 const char* Zeitkit::pathClients = "clients";
 
-const char* Zeitkit::remoteAddr = "zeitkit.com";
-const unsigned int Zeitkit::remotePort = 80;
+const char* Zeitkit::remoteAddr = "foxtacles.com";
+const unsigned int Zeitkit::remotePort = 3000;
 const char* Zeitkit::queryLogin = "/sessions";
+const char* Zeitkit::queryRegister = "/users";
 
 const char* Zeitkit::globalHeaders[] =
 {
@@ -109,11 +110,11 @@ void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 
 		switch (code)
 		{
-			case 401:
-				cout << "E-Mail / password is invalid. Do you want to create an account? Use the --register option." << endl;
+			case happyhttp::UNAUTHORIZED:
+				cout << "E-Mail / password is invalid. Do you want to create an account? Run zeitkit init --register." << endl;
 				break;
 
-			case 200:
+			case happyhttp::OK:
 			{
 				char* errorPos = 0;
 				char* errorDesc = 0;
@@ -140,6 +141,81 @@ void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 				cout << "Unhandled HTTP status code: " << code << endl;
 				break;
 		}
+	}
+	catch (const happyhttp::Wobbly& wobbly)
+	{
+		cout << "An error occured: " << wobbly.what() << endl;
+	}
+}
+
+void Zeitkit::register_account(const std::string& input_mail, const std::string& input_pwd)
+{
+	try
+	{
+		happyhttp::Connection conn(remoteAddr, remotePort);
+
+		string query = "{\"email\": \"" + input_mail + "\", \"password\": \"" + input_pwd + "\"}";
+		string result;
+
+		static int code;
+
+		conn.setcallbacks(
+		[](const happyhttp::Response* resp, void*)
+		{
+			code = resp->getstatus();
+		},
+		[](const happyhttp::Response*, void* userdata, const unsigned char* data, int n)
+		{
+			string& result = *reinterpret_cast<string*>(userdata);
+			result.append(reinterpret_cast<const char*>(data), n);
+		},
+		[](const happyhttp::Response*, void*)
+		{
+		}, reinterpret_cast<void*>(&result));
+
+		conn.request("POST", queryRegister, globalHeaders, reinterpret_cast<const unsigned char*>(query.c_str()), query.size());
+
+		while (conn.outstanding())
+			conn.pump();
+
+		char* errorPos = 0;
+		char* errorDesc = 0;
+		int errorLine = 0;
+		block_allocator allocator(1 << 10);
+
+		char* buffer = strdup(result.c_str());
+		json_value* root = json_parse(buffer, &errorPos, &errorDesc, &errorLine, &allocator);
+
+		if (root)
+		{
+			switch (code)
+			{
+				case happyhttp::BAD_REQUEST:
+				{
+					cout << "Errors occured on registration, sorry!" << endl;
+
+					if (root->first_child->type == JSON_OBJECT)
+						for (json_value* it = root->first_child->first_child; it; it = it->next_sibling)
+							cout << it->string_value << endl;
+					break;
+				}
+
+				case happyhttp::CREATED:
+				{
+					auth_token = root->first_child->string_value;
+					write();
+					break;
+				}
+
+				default:
+					cout << "Unhandled HTTP status code: " << code << endl;
+					break;
+			}
+		}
+		else
+			cout << "Malformed server response: " << errorDesc << endl;
+
+		free(buffer);
 	}
 	catch (const happyhttp::Wobbly& wobbly)
 	{
@@ -184,9 +260,7 @@ void Zeitkit::init(const char* mail, const char* password, bool register_account
 	}
 
 	if (register_account)
-	{
-
-	}
+		this->register_account(input_mail, input_pwd);
 	else
 		authenticate(input_mail, input_pwd);
 }

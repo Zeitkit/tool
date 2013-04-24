@@ -13,6 +13,8 @@ class Zeitkit
 		static const char* remoteAddr;
 		static const unsigned int remotePort;
 		static const char* queryLogin;
+		static const char* queryRegister;
+
 		static const char* globalHeaders[];
 
 		std::string baseDirectory;
@@ -23,7 +25,9 @@ class Zeitkit
 		Zeitkit& operator=(const Zeitkit&) = delete;
 
 		void write();
+
 		void authenticate(const std::string& input_mail, const std::string& input_pwd);
+		void register_account(const std::string& input_mail, const std::string& input_pwd);
 
 	public:
 		Zeitkit(const char* baseDirectory);

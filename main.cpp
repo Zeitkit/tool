@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 			if (argc < 3)
 				return 0;
 
-			op = Utils::hash(argv[2], strlen(argv[2]));
+			op = Utils::hash(argv[2], strlen(argv[2]) + 1);
 
 			switch (op)
 			{
