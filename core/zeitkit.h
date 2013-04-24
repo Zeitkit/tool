@@ -22,8 +22,8 @@ class Zeitkit
 		Zeitkit(const Zeitkit&) = delete;
 		Zeitkit& operator=(const Zeitkit&) = delete;
 
-		bool authenticate();
-
+		void write();
+		void authenticate(const std::string& input_mail, const std::string& input_pwd);
 
 	public:
 		Zeitkit(const char* baseDirectory);
