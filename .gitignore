@@ -2,5 +2,5 @@ ext/boost
 
 obj
 bin
-.depend
-.layout
+zeitkit.depend
+zeitkit.layout
