@@ -1,7 +1,7 @@
 Zeitkit tool
 ====
 
-The Zeitkit tool allows you to remotely create and manage clients and worklogs.
+The Zeitkit tool allows you to remotely create and manage clients and worklogs. See www.zeitkit.com for more information!
 
 Third party libraries
 ====
