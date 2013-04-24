@@ -87,6 +87,8 @@
 		<Unit filename="ext/token.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="utils/hash.h" />
+		<Unit filename="utils/input.cpp" />
+		<Unit filename="utils/input.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

@@ -14,4 +14,5 @@ namespace Utils
 		return (I == 1 ? ((2166136261u ^ str[0]) * 16777619u) : ((hash(str, I - 1) ^ str[I - 1]) * 16777619u));
 	}
 }
+
 #endif

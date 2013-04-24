@@ -1,4 +1,5 @@
 #include <core/zeitkit.h>
+#include <utils/input.h>
 
 #include <yaml-cpp/yaml.h>
 #include <happyhttp.h>
@@ -88,16 +89,16 @@ void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 		static int code;
 
 		conn.setcallbacks(
-		[](const happyhttp::Response* resp, void* userdata)
+		[](const happyhttp::Response* resp, void*)
 		{
 			code = resp->getstatus();
 		},
-		[](const happyhttp::Response* resp, void* userdata, const unsigned char* data, int n)
+		[](const happyhttp::Response*, void* userdata, const unsigned char* data, int n)
 		{
 			string& result = *reinterpret_cast<string*>(userdata);
 			result.append(reinterpret_cast<const char*>(data), n);
 		},
-		[](const happyhttp::Response* resp, void* userdata)
+		[](const happyhttp::Response*, void*)
 		{
 		}, reinterpret_cast<void*>(&result));
 
@@ -163,7 +164,11 @@ void Zeitkit::init(const char* mail, const char* password, bool register_account
 		cin >> input_mail;
 
 		cout << "Your password: ";
+
+		Utils::SetStdinEcho(false);
 		cin >> input_pwd;
+		cout << endl;
+		Utils::SetStdinEcho(true);
 	}
 	else
 	{

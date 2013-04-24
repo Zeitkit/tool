@@ -54,6 +54,12 @@ int main(int argc, char** argv)
 			break;
 		}
 
+		case Utils::hash("auth"):
+		{
+			zeitkit.init(args["mail"], args["password"], false, true);
+			break;
+		}
+
 		case Utils::hash("start"):
 		{
 			break;
