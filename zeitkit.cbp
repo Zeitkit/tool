@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="zeitkit" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Release">
+				<Option output="bin/Release/zeitkit" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-pedantic-errors" />
+					<Add option="-pedantic" />
+					<Add option="-std=c++11" />
+					<Add option="-Wfatal-errors" />
+					<Add option="-Wextra" />
+					<Add option="-Wall" />
+					<Add directory="." />
+					<Add directory="ext" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-lws2_32" />
+				</Linker>
+			</Target>
+		</Build>
+		<Unit filename="core/zeitkit.cpp" />
+		<Unit filename="core/zeitkit.h" />
+		<Unit filename="ext/binary.cpp" />
+		<Unit filename="ext/block_allocator.cpp" />
+		<Unit filename="ext/block_allocator.h" />
+		<Unit filename="ext/collectionstack.h" />
+		<Unit filename="ext/convert.cpp" />
+		<Unit filename="ext/directives.cpp" />
+		<Unit filename="ext/directives.h" />
+		<Unit filename="ext/emit.cpp" />
+		<Unit filename="ext/emitfromevents.cpp" />
+		<Unit filename="ext/emitter.cpp" />
+		<Unit filename="ext/emitterstate.cpp" />
+		<Unit filename="ext/emitterstate.h" />
+		<Unit filename="ext/emitterutils.cpp" />
+		<Unit filename="ext/emitterutils.h" />
+		<Unit filename="ext/exp.cpp" />
+		<Unit filename="ext/exp.h" />
+		<Unit filename="ext/happyhttp.cpp" />
+		<Unit filename="ext/happyhttp.h" />
+		<Unit filename="ext/indentation.h" />
+		<Unit filename="ext/json.cpp" />
+		<Unit filename="ext/json.h" />
+		<Unit filename="ext/memory.cpp" />
+		<Unit filename="ext/node.cpp" />
+		<Unit filename="ext/node_data.cpp" />
+		<Unit filename="ext/nodebuilder.cpp" />
+		<Unit filename="ext/nodebuilder.h" />
+		<Unit filename="ext/nodeevents.cpp" />
+		<Unit filename="ext/nodeevents.h" />
+		<Unit filename="ext/null.cpp" />
+		<Unit filename="ext/ostream_wrapper.cpp" />
+		<Unit filename="ext/parse.cpp" />
+		<Unit filename="ext/parser.cpp" />
+		<Unit filename="ext/ptr_stack.h" />
+		<Unit filename="ext/ptr_vector.h" />
+		<Unit filename="ext/regex.cpp" />
+		<Unit filename="ext/regex.h" />
+		<Unit filename="ext/regeximpl.h" />
+		<Unit filename="ext/scanner.cpp" />
+		<Unit filename="ext/scanner.h" />
+		<Unit filename="ext/scanscalar.cpp" />
+		<Unit filename="ext/scanscalar.h" />
+		<Unit filename="ext/scantag.cpp" />
+		<Unit filename="ext/scantag.h" />
+		<Unit filename="ext/scantoken.cpp" />
+		<Unit filename="ext/setting.h" />
+		<Unit filename="ext/simplekey.cpp" />
+		<Unit filename="ext/singledocparser.cpp" />
+		<Unit filename="ext/singledocparser.h" />
+		<Unit filename="ext/stream.cpp" />
+		<Unit filename="ext/stream.h" />
+		<Unit filename="ext/streamcharsource.h" />
+		<Unit filename="ext/stringsource.h" />
+		<Unit filename="ext/tag.cpp" />
+		<Unit filename="ext/tag.h" />
+		<Unit filename="ext/token.h" />
+		<Unit filename="main.cpp" />
+		<Unit filename="utils/hash.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
