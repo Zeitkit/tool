@@ -48,7 +48,9 @@ Zeitkit::Zeitkit(const char* baseDirectory) : baseDirectory(baseDirectory), init
 	}
 
 	initialized = true;
-	auth_token = init["auth_token"].as<string>();
+
+	if (init["auth_token"])
+		auth_token = init["auth_token"].as<string>();
 }
 
 Zeitkit::~Zeitkit()
