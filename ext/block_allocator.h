@@ -1,6 +1,8 @@
 #ifndef BLOCK_ALLOCATOR_H
 #define BLOCK_ALLOCATOR_H
 
+#include <memory>
+
 class block_allocator
 {
 private:

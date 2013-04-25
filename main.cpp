@@ -111,6 +111,7 @@ int main(int argc, char** argv)
 
 		case Utils::hash("pull"):
 		{
+			zeitkit.pull();
 			break;
 		}
 

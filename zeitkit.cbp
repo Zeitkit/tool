@@ -28,6 +28,8 @@
 				</Linker>
 			</Target>
 		</Build>
+		<Unit filename="core/worklog.cpp" />
+		<Unit filename="core/worklog.h" />
 		<Unit filename="core/zeitkit.cpp" />
 		<Unit filename="core/zeitkit.h" />
 		<Unit filename="ext/binary.cpp" />
@@ -86,6 +88,8 @@
 		<Unit filename="ext/tag.h" />
 		<Unit filename="ext/token.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="utils/checksum.cpp" />
+		<Unit filename="utils/checksum.h" />
 		<Unit filename="utils/hash.h" />
 		<Unit filename="utils/input.cpp" />
 		<Unit filename="utils/input.h" />

@@ -7,6 +7,8 @@ class Zeitkit
 {
 	private:
 		static const char* fileZeitkit;
+		static const char* fileCommits;
+		static const char* fileStatus;
 		static const char* pathWorklogs;
 		static const char* pathClients;
 
@@ -14,12 +16,14 @@ class Zeitkit
 		static const unsigned int remotePort;
 		static const char* queryLogin;
 		static const char* queryRegister;
+		static const char* queryWorklogs;
 
 		static const char* globalHeaders[];
 
 		std::string baseDirectory;
 		bool initialized;
 		std::string auth_token;
+		unsigned int last_update;
 
 		Zeitkit(const Zeitkit&) = delete;
 		Zeitkit& operator=(const Zeitkit&) = delete;
@@ -28,12 +32,14 @@ class Zeitkit
 
 		void authenticate(const std::string& input_mail, const std::string& input_pwd);
 		void register_account(const std::string& input_mail, const std::string& input_pwd);
+		std::string validate_unchanged();
 
 	public:
 		Zeitkit(const char* baseDirectory);
 		~Zeitkit();
 
 		void init(const char* mail, const char* password, bool register_account, bool force);
+		void pull();
 };
 
 #endif
