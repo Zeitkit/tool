@@ -266,7 +266,7 @@ string Zeitkit::validate_unchanged()
 			for (const auto& file : files)
 			{
 				unsigned int crc = 0;
-				string file_ = string(pathWorklogs) + "/" + file.first;
+				string file_ = string(pathWorklogs) + "/" + file.first + ".worklog";
 				Utils::crc32file(file_.c_str(), &crc);
 
 				if (crc != file.second)
@@ -384,19 +384,25 @@ void Zeitkit::pull()
 
 					json_value* root = json_parse(buffer, &errorPos, &errorDesc, &errorLine, &allocator);
 
-					cout << result << endl;
-
 					if (root && root->type == JSON_ARRAY)
 					{
 						unsigned int count_updated = 0;
 						unsigned int count_deleted = 0;
 
-						last_update = time(nullptr);
+						YAML::Node status;
+						string status_file = string(pathWorklogs) + "/" + fileStatus;
+
+						try
+						{
+							status = YAML::LoadFile(status_file);
+						}
+						catch (const YAML::BadFile& bad_file) {}
 
 						for (json_value* it = root->first_child; it; it = it->next_sibling)
 						{
 							Worklog worklog(last_update, it);
 							string file_name = string(pathWorklogs) + "/" + worklog.GetFileName();
+							string key = worklog.GetIdString();
 
 							if (worklog.IsUpdated())
 							{
@@ -405,15 +411,31 @@ void Zeitkit::pull()
 
 								ofstream fout(file_name);
 								fout << node;
+								fout.flush();
 
 								++count_updated;
+
+								unsigned int crc = 0;
+								Utils::crc32file(file_name.c_str(), &crc);
+								status[key] = crc;
 							}
 							else if (worklog.IsDeleted())
 							{
 								remove(file_name.c_str());
 								++count_deleted;
+
+								if (status[key])
+									status.remove(key);
 							}
 						}
+
+						if (status.size())
+						{
+							ofstream fout(status_file);
+							fout << status;
+						}
+
+						last_update = time(nullptr);
 
 						write();
 

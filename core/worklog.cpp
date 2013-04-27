@@ -21,11 +21,11 @@ Worklog::Worklog(unsigned int time_now, json_value* object) : updated(false), de
 				this->client_id = it->int_value;
 				break;
 
-			case Utils::hash("start_time"):
+			case Utils::hash("start_time_unixtime"):
 				this->start_time = it->int_value;
 				break;
 
-			case Utils::hash("end_time"):
+			case Utils::hash("end_time_unixtime"):
 				this->end_time = it->int_value;
 				break;
 
@@ -33,12 +33,12 @@ Worklog::Worklog(unsigned int time_now, json_value* object) : updated(false), de
 				this->summary = it->string_value;
 				break;
 
-			case Utils::hash("updated_at"):
-				updated = true; // !deleted && it->int_value > time_now;
+			case Utils::hash("updated_at_unixtime"):
+				updated = !deleted && it->int_value > time_now;
 				break;
 
-			case Utils::hash("deleted_at"):
-				deleted = false; // it->int_value > time_now;
+			case Utils::hash("deleted_at_unixtime"):
+				deleted = it->int_value > time_now;
 
 				if (deleted)
 					updated = false;
@@ -52,11 +52,16 @@ Worklog::Worklog(unsigned int time_now, json_value* object) : updated(false), de
 
 string Worklog::GetFileName()
 {
+	return GetIdString() + ".worklog";
+}
+
+string Worklog::GetIdString()
+{
 	if (!id)
-		return "new.worklog";
+		return "new";
 
 	char buf[16];
 	snprintf(buf, sizeof(buf), "%d", id);
 
-	return string(buf) + ".worklog";
+	return buf;
 }
