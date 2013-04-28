@@ -22,7 +22,8 @@
 using namespace std;
 
 const char* Zeitkit::fileZeitkit = ".zeitkit";
-const char* Zeitkit::fileStatus = ".status";
+const char* Zeitkit::fileStatusWorklog = "worklogs/.status";
+const char* Zeitkit::fileNewWorklog = "worklogs/new.worklog";
 const char* Zeitkit::pathWorklogs = "worklogs";
 const char* Zeitkit::pathClients = "clients";
 
@@ -242,7 +243,7 @@ string Zeitkit::validate_unchanged()
 
 	try
 	{
-		node = YAML::LoadFile(string(pathWorklogs) + "/" + fileStatus);
+		node = YAML::LoadFile(fileStatusWorklog);
 
 		if (node.IsMap())
 		{
@@ -273,7 +274,7 @@ bool Zeitkit::is_worklog_open()
 
 	try
 	{
-		YAML::LoadFile(string(pathWorklogs) + "/new.worklog");
+		YAML::LoadFile(fileNewWorklog);
 	}
 	catch (const YAML::BadFile& bad_file)
 	{
@@ -349,7 +350,7 @@ void Zeitkit::status()
 		cout << "A worklog has been started but not yet been closed." << endl;
 }
 
-void Zeitkit::reset()
+void Zeitkit::reset(bool force)
 {
 	if (!initialized || auth_token.empty())
 	{
@@ -359,11 +360,20 @@ void Zeitkit::reset()
 
 	YAML::Node node;
 
+	if ((!validate_unchanged().empty() || is_worklog_open()) && !force)
+	{
+		cout << "You have local changes which have not been pushed to remote which will be lost. Do you really want to continue? (y / n): ";
+
+		char key;
+		cin >> key;
+
+		if (tolower(key) != 'y')
+			return;
+	}
+
 	try
 	{
-		string status_file = string(pathWorklogs) + "/" + fileStatus;
-
-		node = YAML::LoadFile(status_file);
+		node = YAML::LoadFile(fileStatusWorklog);
 
 		if (node.IsMap())
 		{
@@ -376,15 +386,13 @@ void Zeitkit::reset()
 				node.remove(file.first);
 			}
 
-			ofstream fout(status_file);
+			ofstream fout(fileStatusWorklog);
 			fout << node;
 		}
 	}
 	catch (const YAML::BadFile& bad_file) {}
 
-	string new_file = string(pathWorklogs) + "/new.worklog";
-
-	remove(new_file.c_str());
+	remove(fileNewWorklog);
 
 	last_update = 0;
 
@@ -460,11 +468,10 @@ void Zeitkit::pull()
 						unsigned int count_deleted = 0;
 
 						YAML::Node status;
-						string status_file = string(pathWorklogs) + "/" + fileStatus;
 
 						try
 						{
-							status = YAML::LoadFile(status_file);
+							status = YAML::LoadFile(fileStatusWorklog);
 						}
 						catch (const YAML::BadFile& bad_file) {}
 
@@ -501,7 +508,7 @@ void Zeitkit::pull()
 
 						if (status.size())
 						{
-							ofstream fout(status_file);
+							ofstream fout(fileStatusWorklog);
 							fout << status;
 						}
 

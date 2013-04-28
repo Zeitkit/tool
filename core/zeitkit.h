@@ -10,7 +10,8 @@ class Zeitkit
 		typedef std::map<std::string, unsigned int> statusStruct;
 
 		static const char* fileZeitkit;
-		static const char* fileStatus;
+		static const char* fileStatusWorklog;
+		static const char* fileNewWorklog;
 		static const char* pathWorklogs;
 		static const char* pathClients;
 
@@ -42,7 +43,7 @@ class Zeitkit
 
 		void init(const char* mail, const char* password, bool register_account, bool force);
 		void status();
-		void reset();
+		void reset(bool force);
 		void pull();
 
 };

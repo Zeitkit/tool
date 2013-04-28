@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 
 		case Utils::hash("reset"):
 		{
-			zeitkit.reset();
+			zeitkit.reset(args.count("force"));
 			break;
 		}
 
