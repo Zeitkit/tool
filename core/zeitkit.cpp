@@ -22,7 +22,6 @@
 using namespace std;
 
 const char* Zeitkit::fileZeitkit = ".zeitkit";
-const char* Zeitkit::fileCommits = ".commits";
 const char* Zeitkit::fileStatus = ".status";
 const char* Zeitkit::pathWorklogs = "worklogs";
 const char* Zeitkit::pathClients = "clients";
@@ -239,21 +238,7 @@ void Zeitkit::register_account(const std::string& input_mail, const std::string&
 string Zeitkit::validate_unchanged()
 {
 	YAML::Node node;
-
 	string result;
-
-	try
-	{
-		node = YAML::LoadFile(string(pathWorklogs) + "/" + fileCommits);
-
-		if (node.size())
-		{
-			char buf[16];
-			snprintf(buf, sizeof(buf), "%d", node.size());
-			result += string("You have ") + buf + " pending commits\n";
-		}
-	}
-	catch (const YAML::BadFile& bad_file) {}
 
 	try
 	{
@@ -261,7 +246,7 @@ string Zeitkit::validate_unchanged()
 
 		if (node.IsMap())
 		{
-			map<string, unsigned int> files = node.as<map<string, unsigned int>>();
+			auto files = node.as<statusStruct>();
 
 			for (const auto& file : files)
 			{
@@ -276,7 +261,26 @@ string Zeitkit::validate_unchanged()
 	}
 	catch (const YAML::BadFile& bad_file) {}
 
+	if (result.size())
+		result = result.substr(0, result.size() - 1);
+
 	return result;
+}
+
+bool Zeitkit::is_worklog_open()
+{
+	YAML::Node node;
+
+	try
+	{
+		YAML::LoadFile(string(pathWorklogs) + "/new.worklog");
+	}
+	catch (const YAML::BadFile& bad_file)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void Zeitkit::init(const char* mail, const char* password, bool register_account, bool force)
@@ -319,6 +323,72 @@ void Zeitkit::init(const char* mail, const char* password, bool register_account
 		this->register_account(input_mail, input_pwd);
 	else
 		authenticate(input_mail, input_pwd);
+}
+
+void Zeitkit::status()
+{
+	if (!initialized || auth_token.empty())
+	{
+		cout << "This directory has not yet been initialized." << endl;
+		return;
+	}
+
+	string validate = validate_unchanged();
+	bool new_worklog = is_worklog_open();
+
+	if (validate.empty() && !new_worklog)
+	{
+		cout << "Zeitkit directory has been initialized and is clean." << endl;
+		return;
+	}
+
+	if (!validate.empty())
+		cout << validate << endl;
+
+	if (new_worklog)
+		cout << "A worklog has been started but not yet been closed." << endl;
+}
+
+void Zeitkit::reset()
+{
+	if (!initialized || auth_token.empty())
+	{
+		cout << "Please initialize this directory first: zeitkit init." << endl;
+		return;
+	}
+
+	YAML::Node node;
+
+	try
+	{
+		string status_file = string(pathWorklogs) + "/" + fileStatus;
+
+		node = YAML::LoadFile(status_file);
+
+		if (node.IsMap())
+		{
+			auto files = node.as<statusStruct>();
+
+			for (const auto& file : files)
+			{
+				string file_ = string(pathWorklogs) + "/" + file.first + ".worklog";
+				remove(file_.c_str());
+				node.remove(file.first);
+			}
+
+			ofstream fout(status_file);
+			fout << node;
+		}
+	}
+	catch (const YAML::BadFile& bad_file) {}
+
+	string new_file = string(pathWorklogs) + "/new.worklog";
+
+	remove(new_file.c_str());
+
+	last_update = 0;
+
+	write();
 }
 
 void Zeitkit::pull()
@@ -400,7 +470,7 @@ void Zeitkit::pull()
 
 						for (json_value* it = root->first_child; it; it = it->next_sibling)
 						{
-							Worklog worklog(last_update, it);
+							Worklog worklog(it);
 							string file_name = string(pathWorklogs) + "/" + worklog.GetFileName();
 							string key = worklog.GetIdString();
 
@@ -421,8 +491,8 @@ void Zeitkit::pull()
 							}
 							else if (worklog.IsDeleted())
 							{
-								remove(file_name.c_str());
-								++count_deleted;
+								if (!remove(file_name.c_str()))
+									++count_deleted;
 
 								if (status[key])
 									status.remove(key);

@@ -18,7 +18,7 @@ class Worklog
 		bool deleted;
 
 	public:
-		Worklog(unsigned int time_now, json_value* object);
+		Worklog(json_value* object);
 		~Worklog() = default;
 
 		unsigned int GetId() const { return id; }
@@ -66,8 +66,8 @@ namespace YAML
 
 			rhs.SetId(node["id"].as<unsigned int>());
 			rhs.SetClientId(node["client_id"].as<unsigned int>());
-			rhs.SetStartTime(node["start_time_unixtime"].as<unsigned int>());
-			rhs.SetEndTime(node["end_time_unixtime"].as<unsigned int>());
+			rhs.SetStartTime(node["start_time"].as<unsigned int>());
+			rhs.SetEndTime(node["end_time"].as<unsigned int>());
 			rhs.SetSummary(node["summary"].as<std::string>());
 			return true;
 		}

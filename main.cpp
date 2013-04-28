@@ -73,6 +73,13 @@ int main(int argc, char** argv)
 		case Utils::hash("status"):
 		case Utils::hash("st"):
 		{
+			zeitkit.status();
+			break;
+		}
+
+		case Utils::hash("reset"):
+		{
+			zeitkit.reset();
 			break;
 		}
 

@@ -5,7 +5,7 @@
 
 using namespace std;
 
-Worklog::Worklog(unsigned int time_now, json_value* object) : updated(false), deleted(false)
+Worklog::Worklog(json_value* object) : updated(false), deleted(false)
 {
 	for (json_value* it = object->first_child; it; it = it->next_sibling)
 	{
@@ -34,14 +34,15 @@ Worklog::Worklog(unsigned int time_now, json_value* object) : updated(false), de
 				break;
 
 			case Utils::hash("updated_at_unixtime"):
-				updated = !deleted && it->int_value > time_now;
+				updated = !deleted;
 				break;
 
 			case Utils::hash("deleted_at_unixtime"):
-				deleted = it->int_value > time_now;
-
-				if (deleted)
+				if (it->int_value)
+				{
+					deleted = true;
 					updated = false;
+				}
 				break;
 
 			default:
