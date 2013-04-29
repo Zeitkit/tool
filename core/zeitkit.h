@@ -1,6 +1,8 @@
 #ifndef ZEITKIT_H
 #define ZEITKIT_H
 
+#include <core/worklog.h>
+
 #include <string>
 #include <map>
 
@@ -36,6 +38,7 @@ class Zeitkit
 		void register_account(const std::string& input_mail, const std::string& input_pwd);
 		std::string validate_unchanged();
 		bool is_worklog_open();
+		void deploy(Worklog& worklog);
 
 	public:
 		Zeitkit(const char* baseDirectory);
@@ -44,6 +47,10 @@ class Zeitkit
 		void init(const char* mail, const char* password, bool register_account, bool force);
 		void status();
 		void reset(bool force);
+		void start(bool force);
+		void stop(unsigned int client_id, const char* summary);
+		void create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary);
+		void push();
 		void pull();
 
 };

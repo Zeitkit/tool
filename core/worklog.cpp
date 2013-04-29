@@ -51,6 +51,11 @@ Worklog::Worklog(json_value* object) : updated(false), deleted(false)
 	}
 }
 
+Worklog::Worklog(unsigned int client_id, unsigned int start_time, unsigned int end_time, const string& summary) : id(0), client_id(client_id), start_time(start_time), end_time(end_time), summary(summary), updated(true), deleted(false)
+{
+
+}
+
 string Worklog::GetFileName()
 {
 	return GetIdString() + ".worklog";

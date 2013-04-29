@@ -9,7 +9,7 @@
 class Worklog
 {
 	private:
-		unsigned int id;
+		signed int id;
 		unsigned int client_id;
 		unsigned int start_time;
 		unsigned int end_time;
@@ -18,10 +18,12 @@ class Worklog
 		bool deleted;
 
 	public:
+		Worklog() : Worklog(0, 0, 0, "") {}
 		Worklog(json_value* object);
+		Worklog(unsigned int client_id, unsigned int start_time, unsigned int end_time, const std::string& summary);
 		~Worklog() = default;
 
-		unsigned int GetId() const { return id; }
+		signed int GetId() const { return id; }
 		unsigned int GetClientId() const { return client_id; }
 		unsigned int GetStartTime() const { return start_time; }
 		unsigned int GetEndTime() const { return end_time; }
@@ -29,7 +31,7 @@ class Worklog
 		bool IsUpdated() { return updated; }
 		bool IsDeleted() { return deleted; }
 
-		void SetId(unsigned int id) { this->id = id; }
+		void SetId(signed int id) { this->id = id; }
 		void SetClientId(unsigned int client_id) { this->client_id = client_id; }
 		void SetStartTime(unsigned int start_time) { this->start_time = start_time; }
 		void SetEndTime(unsigned int end_time) { this->end_time = end_time; }
@@ -64,7 +66,7 @@ namespace YAML
 				!node["summary"])
 					return false;
 
-			rhs.SetId(node["id"].as<unsigned int>());
+			rhs.SetId(node["id"].as<signed int>());
 			rhs.SetClientId(node["client_id"].as<unsigned int>());
 			rhs.SetStartTime(node["start_time"].as<unsigned int>());
 			rhs.SetEndTime(node["end_time"].as<unsigned int>());

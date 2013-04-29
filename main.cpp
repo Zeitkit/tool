@@ -62,11 +62,13 @@ int main(int argc, char** argv)
 
 		case Utils::hash("start"):
 		{
+			zeitkit.start(args.count("force"));
 			break;
 		}
 
 		case Utils::hash("stop"):
 		{
+			zeitkit.stop(args.count("client") ? atoi(args["client"]) : 0, args["summary"]);
 			break;
 		}
 
@@ -101,6 +103,7 @@ int main(int argc, char** argv)
 				case Utils::hash("commit"):
 				case Utils::hash("create"):
 				{
+					zeitkit.create(args.count("start") ? atoi(args["start"]) : 0, args.count("end") ? atoi(args["end"]) : 0, args.count("client") ? atoi(args["client"]) : 0, args["summary"]);
 					break;
 				}
 

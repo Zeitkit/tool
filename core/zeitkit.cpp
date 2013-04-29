@@ -284,6 +284,39 @@ bool Zeitkit::is_worklog_open()
 	return true;
 }
 
+void Zeitkit::deploy(Worklog& worklog)
+{
+	YAML::Node status;
+
+	try
+	{
+		status = YAML::LoadFile(fileStatusWorklog);
+	}
+	catch (const YAML::BadFile& bad_file) {}
+
+	signed int new_id = -1;
+
+	while (status[new_id])
+		--new_id;
+
+	worklog.SetId(new_id);
+
+	string path = string(pathWorklogs) + "/" + worklog.GetFileName();
+
+	YAML::Node node;
+	node = worklog;
+	ofstream worklog_(path.c_str());
+	worklog_ << node;
+	worklog_.flush();
+
+	unsigned int crc = 0;
+	Utils::crc32file(path.c_str(), &crc);
+	status[new_id] = crc;
+
+	ofstream fout(fileStatusWorklog);
+	fout << status;
+}
+
 void Zeitkit::init(const char* mail, const char* password, bool register_account, bool force)
 {
 	if (initialized && !force)
@@ -397,6 +430,100 @@ void Zeitkit::reset(bool force)
 	last_update = 0;
 
 	write();
+}
+
+void Zeitkit::start(bool force)
+{
+	if (!initialized || auth_token.empty())
+	{
+		cout << "Please initialize this directory first: zeitkit init." << endl;
+		return;
+	}
+
+	if (!force && is_worklog_open())
+	{
+		cout << "You've already started a worklog. Please close the current one with zeitkit stop first." << endl;
+		return;
+	}
+
+	Worklog worklog(0, time(nullptr), 0, "");
+	YAML::Node node;
+	node = worklog;
+
+	ofstream fout(fileNewWorklog);
+	fout << node;
+}
+
+void Zeitkit::stop(unsigned int client_id, const char* summary)
+{
+	if (!initialized || auth_token.empty())
+	{
+		cout << "Please initialize this directory first: zeitkit init." << endl;
+		return;
+	}
+
+	if (!is_worklog_open())
+	{
+		cout << "You didn't start a worklog yet. Please do so with zeitkit start first." << endl;
+		return;
+	}
+
+	YAML::Node node = YAML::LoadFile(fileNewWorklog);
+	Worklog worklog = node.as<Worklog>();
+	remove(fileNewWorklog);
+
+	create(worklog.GetStartTime(), time(nullptr), client_id, summary);
+}
+
+void Zeitkit::create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary)
+{
+	if (!initialized || auth_token.empty())
+	{
+		cout << "Please initialize this directory first: zeitkit init." << endl;
+		return;
+	}
+
+	if (!start_time)
+	{
+		cout << "Start time: ";
+		cin >> start_time;
+	}
+
+	if (!end_time)
+	{
+		cout << "End time: ";
+		cin >> end_time;
+	}
+
+	if (end_time <= start_time)
+	{
+		cout << "End time must be greater than the start time!" << endl;
+		return;
+	}
+
+	if (!client_id)
+	{
+		cout << "Client ID: ";
+		cin >> client_id;
+	}
+
+	string summary_;
+
+	if (!summary)
+	{
+		cout << "Worklog summary: ";
+		cin >> summary_;
+	}
+	else
+		summary_ = summary;
+
+	Worklog worklog(client_id, start_time, end_time, summary_);
+	deploy(worklog);
+}
+
+void Zeitkit::push()
+{
+
 }
 
 void Zeitkit::pull()
