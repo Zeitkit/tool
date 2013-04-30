@@ -49,7 +49,7 @@ class Zeitkit
 		void reset(bool force);
 		void start(bool force);
 		void stop(unsigned int client_id, const char* summary);
-		void create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary);
+		void log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary);
 		void push();
 		void pull();
 

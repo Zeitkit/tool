@@ -2,6 +2,7 @@
 #include <core/worklog.h>
 #include <utils/input.h>
 #include <utils/checksum.h>
+#include <utils/encode.h>
 
 #include <yaml-cpp/yaml.h>
 #include <happyhttp.h>
@@ -353,6 +354,9 @@ void Zeitkit::init(const char* mail, const char* password, bool register_account
 		input_pwd = password;
 	}
 
+	input_mail = Utils::JSON_encode(input_mail);
+	input_pwd = Utils::JSON_encode(input_pwd);
+
 	if (register_account)
 		this->register_account(input_mail, input_pwd);
 	else
@@ -472,10 +476,10 @@ void Zeitkit::stop(unsigned int client_id, const char* summary)
 	Worklog worklog = node.as<Worklog>();
 	remove(fileNewWorklog);
 
-	create(worklog.GetStartTime(), time(nullptr), client_id, summary);
+	log_create(worklog.GetStartTime(), time(nullptr), client_id, summary);
 }
 
-void Zeitkit::create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary)
+void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary)
 {
 	if (!initialized || auth_token.empty())
 	{
