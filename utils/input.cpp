@@ -6,6 +6,8 @@
 	#include <termios.h>
 #endif
 
+using namespace std;
+
 void Utils::SetStdinEcho(bool enable)
 {
 #ifdef __WIN32__
@@ -30,4 +32,20 @@ void Utils::SetStdinEcho(bool enable)
 
     (void) tcsetattr(STDIN_FILENO, TCSANOW, &tty);
 #endif
+}
+
+string Utils::get_file_contents(ifstream& input)
+{
+	string contents;
+
+	if (input)
+	{
+		input.seekg(0, ios::end);
+		contents.resize(input.tellg());
+		input.seekg(0, ios::beg);
+		input.read(&contents[0], contents.size());
+		input.close();
+	}
+
+	return contents;
 }

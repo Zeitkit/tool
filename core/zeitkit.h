@@ -48,8 +48,8 @@ class Zeitkit
 		void status();
 		void reset(bool force);
 		void start(bool force);
-		void stop(unsigned int client_id, const char* summary);
-		void log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary);
+		void stop(unsigned int client_id, const char* summary, const char* file);
+		bool log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary, const char* file);
 		void push();
 		void pull();
 

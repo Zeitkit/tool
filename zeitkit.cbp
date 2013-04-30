@@ -28,6 +28,8 @@
 				</Linker>
 			</Target>
 		</Build>
+		<Unit filename="core/client.cpp" />
+		<Unit filename="core/client.h" />
 		<Unit filename="core/worklog.cpp" />
 		<Unit filename="core/worklog.h" />
 		<Unit filename="core/zeitkit.cpp" />

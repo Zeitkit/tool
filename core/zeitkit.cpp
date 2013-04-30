@@ -458,7 +458,7 @@ void Zeitkit::start(bool force)
 	fout << node;
 }
 
-void Zeitkit::stop(unsigned int client_id, const char* summary)
+void Zeitkit::stop(unsigned int client_id, const char* summary, const char* file)
 {
 	if (!initialized || auth_token.empty())
 	{
@@ -474,17 +474,17 @@ void Zeitkit::stop(unsigned int client_id, const char* summary)
 
 	YAML::Node node = YAML::LoadFile(fileNewWorklog);
 	Worklog worklog = node.as<Worklog>();
-	remove(fileNewWorklog);
 
-	log_create(worklog.GetStartTime(), time(nullptr), client_id, summary);
+	if (log_create(worklog.GetStartTime(), time(nullptr), client_id, summary, file))
+		remove(fileNewWorklog);
 }
 
-void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary)
+bool Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary, const char* file)
 {
 	if (!initialized || auth_token.empty())
 	{
 		cout << "Please initialize this directory first: zeitkit init." << endl;
-		return;
+		return false;
 	}
 
 	if (!start_time)
@@ -502,7 +502,7 @@ void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 	if (end_time <= start_time)
 	{
 		cout << "End time must be greater than the start time!" << endl;
-		return;
+		return false;
 	}
 
 	if (!client_id)
@@ -513,16 +513,33 @@ void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 
 	string summary_;
 
-	if (!summary)
+	if (!file)
 	{
-		cout << "Worklog summary: ";
-		cin >> summary_;
+		if (!summary)
+		{
+			cout << "Worklog summary: ";
+			cin >> summary_;
+		}
+		else
+			summary_ = summary;
 	}
 	else
-		summary_ = summary;
+	{
+		ifstream fin(file, ios::in | ios::binary);
+
+		if (!fin)
+		{
+			cout << "File could not be opened." << endl;
+			return false;
+		}
+
+		summary_ = Utils::get_file_contents(fin);
+	}
 
 	Worklog worklog(client_id, start_time, end_time, summary_);
 	deploy(worklog);
+
+	return true;
 }
 
 void Zeitkit::push()
