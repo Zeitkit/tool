@@ -3,6 +3,7 @@
 
 #include <core/worklog.h>
 
+#include <functional>
 #include <string>
 #include <map>
 
@@ -33,6 +34,7 @@ class Zeitkit
 		Zeitkit(const Zeitkit&) = delete;
 		Zeitkit& operator=(const Zeitkit&) = delete;
 
+		void request(const char* route, const char* method, const unsigned char* query, unsigned int size, std::function<void(signed int, const std::string&)> result);
 		void write();
 		void authenticate(const std::string& input_mail, const std::string& input_pwd);
 		void register_account(const std::string& input_mail, const std::string& input_pwd);
@@ -45,11 +47,11 @@ class Zeitkit
 		~Zeitkit();
 
 		void init(const char* mail, const char* password, bool register_account, bool force);
-		void status();
+		std::string status();
 		void reset(bool force);
 		void start(bool force);
 		void stop(unsigned int client_id, const char* summary, const char* file);
-		bool log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary, const char* file);
+		void log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary, const char* file);
 		void push();
 		void pull();
 

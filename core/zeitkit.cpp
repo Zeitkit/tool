@@ -3,6 +3,7 @@
 #include <utils/input.h>
 #include <utils/checksum.h>
 #include <utils/encode.h>
+#include <utils/deleter.h>
 
 #include <yaml-cpp/yaml.h>
 #include <happyhttp.h>
@@ -18,6 +19,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <memory>
+#include <stdexcept>
 #include <ctime>
 
 using namespace std;
@@ -75,6 +78,37 @@ Zeitkit::~Zeitkit()
 #endif
 }
 
+void Zeitkit::request(const char* route, const char* method, const unsigned char* query, unsigned int size, function<void(signed int, const string&)> result)
+{
+	static signed int code;
+	string result_data;
+
+	{
+		happyhttp::Connection conn(remoteAddr, remotePort);
+
+		conn.setcallbacks(
+		[](const happyhttp::Response* resp, void*)
+		{
+			code = resp->getstatus();
+		},
+		[](const happyhttp::Response*, void* userdata, const unsigned char* data, int n)
+		{
+			string& result_data = *reinterpret_cast<string*>(userdata);
+			result_data.append(reinterpret_cast<const char*>(data), n);
+		},
+		[](const happyhttp::Response*, void*)
+		{
+		}, reinterpret_cast<void*>(&result_data));
+
+		conn.request(method, route, globalHeaders, query, size);
+
+		while (conn.outstanding())
+			conn.pump();
+	}
+
+	result(code, result_data);
+}
+
 void Zeitkit::write()
 {
 	YAML::Node init;
@@ -94,39 +128,14 @@ void Zeitkit::write()
 
 void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 {
-	try
+	string query = "{\"email\": \"" + input_mail + "\", \"password\": \"" + input_pwd + "\"}";
+
+	request(queryLogin, "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 	{
-		happyhttp::Connection conn(remoteAddr, remotePort);
-
-		string query = "{\"email\": \"" + input_mail + "\", \"password\": \"" + input_pwd + "\"}";
-		string result;
-
-		static int code;
-
-		conn.setcallbacks(
-		[](const happyhttp::Response* resp, void*)
-		{
-			code = resp->getstatus();
-		},
-		[](const happyhttp::Response*, void* userdata, const unsigned char* data, int n)
-		{
-			string& result = *reinterpret_cast<string*>(userdata);
-			result.append(reinterpret_cast<const char*>(data), n);
-		},
-		[](const happyhttp::Response*, void*)
-		{
-		}, reinterpret_cast<void*>(&result));
-
-		conn.request("POST", queryLogin, globalHeaders, reinterpret_cast<const unsigned char*>(query.c_str()), query.size());
-
-		while (conn.outstanding())
-			conn.pump();
-
 		switch (code)
 		{
 			case happyhttp::UNAUTHORIZED:
-				cout << "E-Mail / password is invalid. Do you want to create an account? Run zeitkit init --register." << endl;
-				break;
+				throw runtime_error("E-Mail / password is invalid. Do you want to create an account? Run zeitkit init --register.");
 
 			case happyhttp::OK:
 			{
@@ -135,9 +144,9 @@ void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 				int errorLine = 0;
 				block_allocator allocator(1 << 10);
 
-				char* buffer = strdup(result.c_str());
+				unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
 
-				json_value* root = json_parse(buffer, &errorPos, &errorDesc, &errorLine, &allocator);
+				json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
 
 				if (root)
 				{
@@ -145,60 +154,30 @@ void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 					write();
 				}
 				else
-					cout << "Malformed server response: " << errorDesc << endl;
+					throw runtime_error(string("Malformed server response: ") + errorDesc);
 
-				free(buffer);
 				break;
 			}
 
 			default:
-				cout << "Unhandled HTTP status code: " << code << endl;
-				break;
+				throw runtime_error(string("Unhandled HTTP status code: ") + Utils::inttostr(code));
 		}
-	}
-	catch (const happyhttp::Wobbly& wobbly)
-	{
-		cout << "An error occured: " << wobbly.what() << endl;
-	}
+	});
 }
 
 void Zeitkit::register_account(const std::string& input_mail, const std::string& input_pwd)
 {
-	try
+	string query = "{\"email\": \"" + input_mail + "\", \"password\": \"" + input_pwd + "\"}";
+
+	request(queryRegister, "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 	{
-		happyhttp::Connection conn(remoteAddr, remotePort);
-
-		string query = "{\"email\": \"" + input_mail + "\", \"password\": \"" + input_pwd + "\"}";
-		string result;
-
-		static int code;
-
-		conn.setcallbacks(
-		[](const happyhttp::Response* resp, void*)
-		{
-			code = resp->getstatus();
-		},
-		[](const happyhttp::Response*, void* userdata, const unsigned char* data, int n)
-		{
-			string& result = *reinterpret_cast<string*>(userdata);
-			result.append(reinterpret_cast<const char*>(data), n);
-		},
-		[](const happyhttp::Response*, void*)
-		{
-		}, reinterpret_cast<void*>(&result));
-
-		conn.request("POST", queryRegister, globalHeaders, reinterpret_cast<const unsigned char*>(query.c_str()), query.size());
-
-		while (conn.outstanding())
-			conn.pump();
-
 		char* errorPos = 0;
 		char* errorDesc = 0;
 		int errorLine = 0;
 		block_allocator allocator(1 << 10);
 
-		char* buffer = strdup(result.c_str());
-		json_value* root = json_parse(buffer, &errorPos, &errorDesc, &errorLine, &allocator);
+		unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
+		json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
 
 		if (root)
 		{
@@ -206,12 +185,16 @@ void Zeitkit::register_account(const std::string& input_mail, const std::string&
 			{
 				case happyhttp::BAD_REQUEST:
 				{
-					cout << "Errors occured on registration, sorry!" << endl;
+					string error = "Errors occured on registration, sorry!\n";
 
 					if (root->first_child->type == JSON_ARRAY)
 						for (json_value* it = root->first_child->first_child; it; it = it->next_sibling)
-							cout << it->string_value << endl;
-					break;
+						{
+							error += "\n";
+							error += it->string_value;
+						}
+
+					throw runtime_error(error);
 				}
 
 				case happyhttp::CREATED:
@@ -222,19 +205,12 @@ void Zeitkit::register_account(const std::string& input_mail, const std::string&
 				}
 
 				default:
-					cout << "Unhandled HTTP status code: " << code << endl;
-					break;
+					throw runtime_error(string("Unhandled HTTP status code: ") + Utils::inttostr(code));
 			}
 		}
 		else
-			cout << "Malformed server response: " << errorDesc << endl;
-
-		free(buffer);
-	}
-	catch (const happyhttp::Wobbly& wobbly)
-	{
-		cout << "An error occured: " << wobbly.what() << endl;
-	}
+			throw runtime_error(string("Malformed server response: ") + errorDesc);
+	});
 }
 
 string Zeitkit::validate_unchanged()
@@ -321,10 +297,7 @@ void Zeitkit::deploy(Worklog& worklog)
 void Zeitkit::init(const char* mail, const char* password, bool register_account, bool force)
 {
 	if (initialized && !force)
-	{
-		cout << "Zeitkit has already been initialized in this directory. Use --force to perform the action anyway." << endl;
-		return;
-	}
+		throw runtime_error("Zeitkit has already been initialized in this directory. Use --force to perform the action anyway.");
 
 	string input_mail;
 	string input_pwd;
@@ -346,10 +319,7 @@ void Zeitkit::init(const char* mail, const char* password, bool register_account
 		input_mail = mail;
 
 		if (!password)
-		{
-			cout << "You entered an e-mail address. Please also give the password with --password yourpassword." << endl;
-			return;
-		}
+			throw runtime_error("You entered an e-mail address. Please also give the password with --password yourpassword.");
 
 		input_pwd = password;
 	}
@@ -363,37 +333,30 @@ void Zeitkit::init(const char* mail, const char* password, bool register_account
 		authenticate(input_mail, input_pwd);
 }
 
-void Zeitkit::status()
+string Zeitkit::status()
 {
 	if (!initialized || auth_token.empty())
-	{
-		cout << "This directory has not yet been initialized." << endl;
-		return;
-	}
+		throw runtime_error("This directory has not yet been initialized.");
 
 	string validate = validate_unchanged();
 	bool new_worklog = is_worklog_open();
 
 	if (validate.empty() && !new_worklog)
-	{
-		cout << "Zeitkit directory has been initialized and is clean." << endl;
-		return;
-	}
+		return "Zeitkit directory has been initialized and is clean.";
 
 	if (!validate.empty())
-		cout << validate << endl;
+		validate += "\n";
 
 	if (new_worklog)
-		cout << "A worklog has been started but not yet been closed." << endl;
+		validate += "A worklog has been started but not yet been closed.";
+
+	return validate;
 }
 
 void Zeitkit::reset(bool force)
 {
 	if (!initialized || auth_token.empty())
-	{
-		cout << "Please initialize this directory first: zeitkit init." << endl;
-		return;
-	}
+		throw runtime_error("Please initialize this directory first: zeitkit init.");
 
 	YAML::Node node;
 
@@ -439,16 +402,10 @@ void Zeitkit::reset(bool force)
 void Zeitkit::start(bool force)
 {
 	if (!initialized || auth_token.empty())
-	{
-		cout << "Please initialize this directory first: zeitkit init." << endl;
-		return;
-	}
+		throw runtime_error("Please initialize this directory first: zeitkit init.");
 
 	if (!force && is_worklog_open())
-	{
-		cout << "You've already started a worklog. Please close the current one with zeitkit stop first." << endl;
-		return;
-	}
+		throw runtime_error("You've already started a worklog. Please close the current one with zeitkit stop first.");
 
 	Worklog worklog(0, time(nullptr), 0, "");
 	YAML::Node node;
@@ -461,31 +418,22 @@ void Zeitkit::start(bool force)
 void Zeitkit::stop(unsigned int client_id, const char* summary, const char* file)
 {
 	if (!initialized || auth_token.empty())
-	{
-		cout << "Please initialize this directory first: zeitkit init." << endl;
-		return;
-	}
+		throw runtime_error("Please initialize this directory first: zeitkit init.");
 
 	if (!is_worklog_open())
-	{
-		cout << "You didn't start a worklog yet. Please do so with zeitkit start first." << endl;
-		return;
-	}
+		throw runtime_error("You didn't start a worklog yet. Please do so with zeitkit start first.");
 
 	YAML::Node node = YAML::LoadFile(fileNewWorklog);
 	Worklog worklog = node.as<Worklog>();
 
-	if (log_create(worklog.GetStartTime(), time(nullptr), client_id, summary, file))
-		remove(fileNewWorklog);
+	log_create(worklog.GetStartTime(), time(nullptr), client_id, summary, file);
+	remove(fileNewWorklog);
 }
 
-bool Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary, const char* file)
+void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigned int client_id, const char* summary, const char* file)
 {
 	if (!initialized || auth_token.empty())
-	{
-		cout << "Please initialize this directory first: zeitkit init." << endl;
-		return false;
-	}
+		throw runtime_error("Please initialize this directory first: zeitkit init.");
 
 	if (!start_time)
 	{
@@ -500,10 +448,7 @@ bool Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 	}
 
 	if (end_time <= start_time)
-	{
-		cout << "End time must be greater than the start time!" << endl;
-		return false;
-	}
+		throw runtime_error("End time must be greater than the start time!");
 
 	if (!client_id)
 	{
@@ -528,18 +473,13 @@ bool Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 		ifstream fin(file, ios::in | ios::binary);
 
 		if (!fin)
-		{
-			cout << "File could not be opened." << endl;
-			return false;
-		}
+			throw runtime_error("File could not be opened.");
 
 		summary_ = Utils::get_file_contents(fin);
 	}
 
 	Worklog worklog(client_id, start_time, end_time, summary_);
 	deploy(worklog);
-
-	return true;
 }
 
 void Zeitkit::push()
@@ -550,10 +490,7 @@ void Zeitkit::push()
 void Zeitkit::pull()
 {
 	if (!initialized || auth_token.empty())
-	{
-		cout << "Please initialize this directory first: zeitkit init." << endl;
-		return;
-	}
+		throw runtime_error("Please initialize this directory first: zeitkit init.");
 
 	string validate = validate_unchanged();
 
@@ -562,42 +499,14 @@ void Zeitkit::pull()
 		mkdir(pathWorklogs);
 		mkdir(pathClients);
 
-		try
+		string query = string("{\"updated_since\": ") + Utils::inttostr(last_update) + ", \"access_token\": \"" + auth_token + "\"}";
+
+		request(queryWorklogs, "GET", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 		{
-			happyhttp::Connection conn(remoteAddr, remotePort);
-
-			char buf[16];
-			snprintf(buf, sizeof(buf), "%d", last_update);
-
-			string query = string("{\"updated_since\": ") + buf + ", \"access_token\": \"" + auth_token + "\"}";
-			string result;
-
-			static int code;
-
-			conn.setcallbacks(
-			[](const happyhttp::Response* resp, void*)
-			{
-				code = resp->getstatus();
-			},
-			[](const happyhttp::Response*, void* userdata, const unsigned char* data, int n)
-			{
-				string& result = *reinterpret_cast<string*>(userdata);
-				result.append(reinterpret_cast<const char*>(data), n);
-			},
-			[](const happyhttp::Response*, void*)
-			{
-			}, reinterpret_cast<void*>(&result));
-
-			conn.request("GET", queryWorklogs, globalHeaders, reinterpret_cast<const unsigned char*>(query.c_str()), query.size());
-
-			while (conn.outstanding())
-				conn.pump();
-
 			switch (code)
 			{
 				case happyhttp::UNAUTHORIZED:
-					cout << "Your authentication has expired. Please use zeitkit auth to re-authenticate with the server." << endl;
-					break;
+					throw runtime_error("Your authentication has expired. Please use zeitkit auth to re-authenticate with the server.");
 
 				case happyhttp::OK:
 				{
@@ -606,9 +515,8 @@ void Zeitkit::pull()
 					int errorLine = 0;
 					block_allocator allocator(1 << 10);
 
-					char* buffer = strdup(result.c_str());
-
-					json_value* root = json_parse(buffer, &errorPos, &errorDesc, &errorLine, &allocator);
+					unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
+					json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
 
 					if (root && root->type == JSON_ARRAY)
 					{
@@ -667,22 +575,16 @@ void Zeitkit::pull()
 						cout << "Worklogs: " << count_updated << " updated and " << count_deleted << " deleted." << endl;
 					}
 					else
-						cout << "Malformed server response: " << errorDesc << endl;
+						throw runtime_error(string("Malformed server response: ") + errorDesc);
 
-					free(buffer);
 					break;
 				}
 
 				default:
-					cout << "Unhandled HTTP status code: " << code << endl;
-					break;
+					throw runtime_error(string("Unhandled HTTP status code: ") + Utils::inttostr(code));
 			}
-		}
-		catch (const happyhttp::Wobbly& wobbly)
-		{
-			cout << "An error occured: " << wobbly.what() << endl;
-		}
+		});
 	}
 	else
-		cout << "Please solve the following cases before using zeitkit pull:\n\n" << validate << endl;
+		throw runtime_error(string("Please solve the following cases before using zeitkit pull:\n\n") + validate);
 }

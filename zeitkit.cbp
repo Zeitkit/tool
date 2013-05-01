@@ -92,6 +92,7 @@
 		<Unit filename="main.cpp" />
 		<Unit filename="utils/checksum.cpp" />
 		<Unit filename="utils/checksum.h" />
+		<Unit filename="utils/deleter.h" />
 		<Unit filename="utils/encode.cpp" />
 		<Unit filename="utils/encode.h" />
 		<Unit filename="utils/hash.h" />
