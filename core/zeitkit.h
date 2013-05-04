@@ -14,6 +14,7 @@ class Zeitkit
 
 		static const char* fileZeitkit;
 		static const char* fileStatusWorklog;
+		static const char* fileStatusClient;
 		static const char* fileNewWorklog;
 		static const char* pathWorklogs;
 		static const char* pathClients;
@@ -23,6 +24,7 @@ class Zeitkit
 		static const char* queryLogin;
 		static const char* queryRegister;
 		static const char* queryWorklogs;
+		static const char* queryClients;
 
 		static const char* globalHeaders[];
 
@@ -40,6 +42,7 @@ class Zeitkit
 		void register_account(const std::string& input_mail, const std::string& input_pwd);
 		std::string validate_unchanged();
 		bool is_worklog_open();
+		bool is_valid_client(unsigned int id);
 		void deploy(Worklog& worklog);
 
 	public:
@@ -48,6 +51,7 @@ class Zeitkit
 
 		void init(const char* mail, const char* password, bool register_account, bool force);
 		std::string status();
+		std::string clients();
 		void reset(bool force);
 		void start(bool force);
 		void stop(unsigned int client_id, const char* summary, const char* file);

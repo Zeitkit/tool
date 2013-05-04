@@ -1,5 +1,6 @@
 #include <core/zeitkit.h>
 #include <core/worklog.h>
+#include <core/client.h>
 #include <utils/input.h>
 #include <utils/checksum.h>
 #include <utils/encode.h>
@@ -27,6 +28,7 @@ using namespace std;
 
 const char* Zeitkit::fileZeitkit = ".zeitkit";
 const char* Zeitkit::fileStatusWorklog = "worklogs/.status";
+const char* Zeitkit::fileStatusClient = "clients/.status";
 const char* Zeitkit::fileNewWorklog = "worklogs/new.worklog";
 const char* Zeitkit::pathWorklogs = "worklogs";
 const char* Zeitkit::pathClients = "clients";
@@ -36,6 +38,7 @@ const unsigned int Zeitkit::remotePort = 3000;
 const char* Zeitkit::queryLogin = "/sessions";
 const char* Zeitkit::queryRegister = "/users";
 const char* Zeitkit::queryWorklogs = "/worklogs";
+const char* Zeitkit::queryClients = "/clients";
 
 const char* Zeitkit::globalHeaders[] =
 {
@@ -261,6 +264,33 @@ bool Zeitkit::is_worklog_open()
 	return true;
 }
 
+bool Zeitkit::is_valid_client(unsigned int id)
+{
+	YAML::Node node;
+
+	try
+	{
+		node = YAML::LoadFile(fileStatusClient);
+
+		if (node.IsMap())
+		{
+			auto files = node.as<statusStruct>();
+
+			for (const auto& file : files)
+			{
+				string file_ = string(pathClients) + "/" + file.first + ".client";
+				YAML::Node client = YAML::LoadFile(file_.c_str());
+
+				if (client["id"].as<unsigned int>() == id)
+					return true;
+			}
+		}
+	}
+	catch (const YAML::BadFile& bad_file) {}
+
+	return false;
+}
+
 void Zeitkit::deploy(Worklog& worklog)
 {
 	YAML::Node status;
@@ -344,13 +374,48 @@ string Zeitkit::status()
 	if (validate.empty() && !new_worklog)
 		return "Zeitkit directory has been initialized and is clean.";
 
-	if (!validate.empty())
-		validate += "\n";
-
 	if (new_worklog)
+	{
+		if (!validate.empty())
+			validate += "\n";
+
 		validate += "A worklog has been started but not yet been closed.";
+	}
 
 	return validate;
+}
+
+string Zeitkit::clients()
+{
+	if (!initialized || auth_token.empty())
+		throw runtime_error("This directory has not yet been initialized.");
+
+	YAML::Node node;
+
+	string result;
+
+	try
+	{
+		node = YAML::LoadFile(fileStatusClient);
+
+		if (node.IsMap())
+		{
+			auto files = node.as<statusStruct>();
+
+			for (const auto& file : files)
+			{
+				string file_ = string(pathClients) + "/" + file.first + ".client";
+				YAML::Node client = YAML::LoadFile(file_.c_str());
+				result += string("ID ") + client["id"].as<string>() + ", " + client["name"].as<string>() + ", hourly rate " + client["hourly_rate_cents"].as<string>() + " cents\n";
+			}
+		}
+	}
+	catch (const YAML::BadFile& bad_file) {}
+
+	if (!result.empty())
+		result = result.substr(0, result.size() - 1);
+
+	return result;
 }
 
 void Zeitkit::reset(bool force)
@@ -387,6 +452,23 @@ void Zeitkit::reset(bool force)
 			}
 
 			ofstream fout(fileStatusWorklog);
+			fout << node;
+		}
+
+		node = YAML::LoadFile(fileStatusClient);
+
+		if (node.IsMap())
+		{
+			auto files = node.as<statusStruct>();
+
+			for (const auto& file : files)
+			{
+				string file_ = string(pathClients) + "/" + file.first + ".client";
+				remove(file_.c_str());
+				node.remove(file.first);
+			}
+
+			ofstream fout(fileStatusClient);
 			fout << node;
 		}
 	}
@@ -456,6 +538,9 @@ void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 		cin >> client_id;
 	}
 
+	if (!is_valid_client(client_id))
+		throw runtime_error("The client ID is not valid. Get a list of your clients with zeitkit clients.");
+
 	string summary_;
 
 	if (!file)
@@ -500,6 +585,8 @@ void Zeitkit::pull()
 		mkdir(pathClients);
 
 		string query = string("{\"updated_since\": ") + Utils::inttostr(last_update) + ", \"access_token\": \"" + auth_token + "\"}";
+
+		unsigned int new_last_update = time(nullptr);
 
 		request(queryWorklogs, "GET", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 		{
@@ -568,10 +655,6 @@ void Zeitkit::pull()
 							fout << status;
 						}
 
-						last_update = time(nullptr);
-
-						write();
-
 						cout << "Worklogs: " << count_updated << " updated and " << count_deleted << " deleted." << endl;
 					}
 					else
@@ -584,6 +667,90 @@ void Zeitkit::pull()
 					throw runtime_error(string("Unhandled HTTP status code: ") + Utils::inttostr(code));
 			}
 		});
+
+		request(queryClients, "GET", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
+		{
+			switch (code)
+			{
+				case happyhttp::UNAUTHORIZED:
+					throw runtime_error("Your authentication has expired. Please use zeitkit auth to re-authenticate with the server.");
+
+				case happyhttp::OK:
+				{
+					char* errorPos = 0;
+					char* errorDesc = 0;
+					int errorLine = 0;
+					block_allocator allocator(1 << 10);
+
+					unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
+					json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
+
+					if (root && root->type == JSON_ARRAY)
+					{
+						unsigned int count_updated = 0;
+						unsigned int count_deleted = 0;
+
+						YAML::Node status;
+
+						try
+						{
+							status = YAML::LoadFile(fileStatusClient);
+						}
+						catch (const YAML::BadFile& bad_file) {}
+
+						for (json_value* it = root->first_child; it; it = it->next_sibling)
+						{
+							Client client(it);
+							string file_name = string(pathClients) + "/" + client.GetFileName();
+							string key = client.GetIdString();
+
+							if (client.IsUpdated())
+							{
+								YAML::Node node;
+								node = client;
+
+								ofstream fout(file_name);
+								fout << node;
+								fout.flush();
+
+								++count_updated;
+
+								unsigned int crc = 0;
+								Utils::crc32file(file_name.c_str(), &crc);
+								status[key] = crc;
+							}
+							else if (client.IsDeleted())
+							{
+								if (!remove(file_name.c_str()))
+									++count_deleted;
+
+								if (status[key])
+									status.remove(key);
+							}
+						}
+
+						if (status.size())
+						{
+							ofstream fout(fileStatusClient);
+							fout << status;
+						}
+
+						cout << "Clients: " << count_updated << " updated and " << count_deleted << " deleted." << endl;
+					}
+					else
+						throw runtime_error(string("Malformed server response: ") + errorDesc);
+
+					break;
+				}
+
+				default:
+					throw runtime_error(string("Unhandled HTTP status code: ") + Utils::inttostr(code));
+			}
+		});
+
+		last_update = new_last_update;
+
+		write();
 	}
 	else
 		throw runtime_error(string("Please solve the following cases before using zeitkit pull:\n\n") + validate);

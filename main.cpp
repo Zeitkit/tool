@@ -90,6 +90,7 @@ int main(int argc, char** argv)
 			case Utils::hash("clients"):
 			case Utils::hash("client"):
 			{
+				cout << zeitkit.clients() << endl;
 				break;
 			}
 

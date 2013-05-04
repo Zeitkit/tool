@@ -1,5 +1,6 @@
 #include <core/worklog.h>
 #include <utils/hash.h>
+#include <utils/encode.h>
 
 #include <cstring>
 
@@ -51,7 +52,7 @@ Worklog::Worklog(json_value* object) : updated(false), deleted(false)
 	}
 }
 
-Worklog::Worklog(unsigned int client_id, unsigned int start_time, unsigned int end_time, const string& summary) : id(0), client_id(client_id), start_time(start_time), end_time(end_time), summary(summary), updated(true), deleted(false)
+Worklog::Worklog(unsigned int client_id, unsigned int start_time, unsigned int end_time, const string& summary) : id(0), client_id(client_id), start_time(start_time), end_time(end_time), summary(summary), updated(false), deleted(false)
 {
 
 }
@@ -66,8 +67,5 @@ string Worklog::GetIdString()
 	if (!id)
 		return "new";
 
-	char buf[16];
-	snprintf(buf, sizeof(buf), "%d", id);
-
-	return buf;
+	return Utils::inttostr(id);
 }

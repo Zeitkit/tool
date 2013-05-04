@@ -28,8 +28,8 @@ class Worklog
 		unsigned int GetStartTime() const { return start_time; }
 		unsigned int GetEndTime() const { return end_time; }
 		const std::string& GetSummary() const { return summary; }
-		bool IsUpdated() { return updated; }
-		bool IsDeleted() { return deleted; }
+		bool IsUpdated() const { return updated; }
+		bool IsDeleted() const { return deleted; }
 
 		void SetId(signed int id) { this->id = id; }
 		void SetClientId(unsigned int client_id) { this->client_id = client_id; }
