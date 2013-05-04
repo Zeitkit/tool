@@ -96,8 +96,12 @@
 		<Unit filename="utils/encode.cpp" />
 		<Unit filename="utils/encode.h" />
 		<Unit filename="utils/hash.h" />
+		<Unit filename="utils/http.cpp" />
+		<Unit filename="utils/http.h" />
 		<Unit filename="utils/input.cpp" />
 		<Unit filename="utils/input.h" />
+		<Unit filename="utils/parser.cpp" />
+		<Unit filename="utils/parser.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

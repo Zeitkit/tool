@@ -5,6 +5,8 @@
 #include <utils/checksum.h>
 #include <utils/encode.h>
 #include <utils/deleter.h>
+#include <utils/parser.h>
+#include <utils/http.h>
 
 #include <yaml-cpp/yaml.h>
 #include <happyhttp.h>
@@ -81,37 +83,6 @@ Zeitkit::~Zeitkit()
 #endif
 }
 
-void Zeitkit::request(const char* route, const char* method, const unsigned char* query, unsigned int size, function<void(signed int, const string&)> result)
-{
-	static signed int code;
-	string result_data;
-
-	{
-		happyhttp::Connection conn(remoteAddr, remotePort);
-
-		conn.setcallbacks(
-		[](const happyhttp::Response* resp, void*)
-		{
-			code = resp->getstatus();
-		},
-		[](const happyhttp::Response*, void* userdata, const unsigned char* data, int n)
-		{
-			string& result_data = *reinterpret_cast<string*>(userdata);
-			result_data.append(reinterpret_cast<const char*>(data), n);
-		},
-		[](const happyhttp::Response*, void*)
-		{
-		}, reinterpret_cast<void*>(&result_data));
-
-		conn.request(method, route, globalHeaders, query, size);
-
-		while (conn.outstanding())
-			conn.pump();
-	}
-
-	result(code, result_data);
-}
-
 void Zeitkit::write()
 {
 	YAML::Node init;
@@ -131,9 +102,9 @@ void Zeitkit::write()
 
 void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 {
-	string query = "{\"email\": \"" + input_mail + "\", \"password\": \"" + input_pwd + "\"}";
+	string query = "{\"email\": \"" + Utils::json_encode(input_mail) + "\", \"password\": \"" + Utils::json_encode(input_pwd) + "\"}";
 
-	request(queryLogin, "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
+	Utils::http_request(remoteAddr, remotePort, globalHeaders, queryLogin, "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 	{
 		switch (code)
 		{
@@ -142,23 +113,12 @@ void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 
 			case happyhttp::OK:
 			{
-				char* errorPos = 0;
-				char* errorDesc = 0;
-				int errorLine = 0;
 				block_allocator allocator(1 << 10);
-
 				unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
+				json_value* root = Utils::json_parse(buffer.get(), &allocator);
 
-				json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
-
-				if (root)
-				{
-					auth_token = root->first_child->string_value;
-					write();
-				}
-				else
-					throw runtime_error(string("Malformed server response: ") + errorDesc);
-
+				auth_token = root->first_child->string_value;
+				write();
 				break;
 			}
 
@@ -170,49 +130,40 @@ void Zeitkit::authenticate(const string& input_mail, const string& input_pwd)
 
 void Zeitkit::register_account(const std::string& input_mail, const std::string& input_pwd)
 {
-	string query = "{\"email\": \"" + input_mail + "\", \"password\": \"" + input_pwd + "\"}";
+	string query = "{\"email\": \"" + Utils::json_encode(input_mail) + "\", \"password\": \"" + Utils::json_encode(input_pwd) + "\"}";
 
-	request(queryRegister, "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
+	Utils::http_request(remoteAddr, remotePort, globalHeaders, queryRegister, "POST", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 	{
-		char* errorPos = 0;
-		char* errorDesc = 0;
-		int errorLine = 0;
 		block_allocator allocator(1 << 10);
-
 		unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
-		json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
+		json_value* root = Utils::json_parse(buffer.get(), &allocator);
 
-		if (root)
+		switch (code)
 		{
-			switch (code)
+			case happyhttp::BAD_REQUEST:
 			{
-				case happyhttp::BAD_REQUEST:
-				{
-					string error = "Errors occured on registration, sorry!\n";
+				string error = "Errors occured on registration, sorry!\n";
 
-					if (root->first_child->type == JSON_ARRAY)
-						for (json_value* it = root->first_child->first_child; it; it = it->next_sibling)
-						{
-							error += "\n";
-							error += it->string_value;
-						}
+				if (root->first_child->type == JSON_ARRAY)
+					for (json_value* it = root->first_child->first_child; it; it = it->next_sibling)
+					{
+						error += "\n";
+						error += it->string_value;
+					}
 
-					throw runtime_error(error);
-				}
-
-				case happyhttp::CREATED:
-				{
-					auth_token = root->first_child->string_value;
-					write();
-					break;
-				}
-
-				default:
-					throw runtime_error(string("Unhandled HTTP status code: ") + Utils::inttostr(code));
+				throw runtime_error(error);
 			}
+
+			case happyhttp::CREATED:
+			{
+				auth_token = root->first_child->string_value;
+				write();
+				break;
+			}
+
+			default:
+				throw runtime_error(string("Unhandled HTTP status code: ") + Utils::inttostr(code));
 		}
-		else
-			throw runtime_error(string("Malformed server response: ") + errorDesc);
 	});
 }
 
@@ -353,9 +304,6 @@ void Zeitkit::init(const char* mail, const char* password, bool register_account
 
 		input_pwd = password;
 	}
-
-	input_mail = Utils::JSON_encode(input_mail);
-	input_pwd = Utils::JSON_encode(input_pwd);
 
 	if (register_account)
 		this->register_account(input_mail, input_pwd);
@@ -584,11 +532,11 @@ void Zeitkit::pull()
 		mkdir(pathWorklogs);
 		mkdir(pathClients);
 
-		string query = string("{\"updated_since\": ") + Utils::inttostr(last_update) + ", \"access_token\": \"" + auth_token + "\"}";
+		string query = string("{\"updated_since\": ") + Utils::inttostr(last_update) + ", \"access_token\": \"" + Utils::json_encode(auth_token) + "\"}";
 
 		unsigned int new_last_update = time(nullptr);
 
-		request(queryWorklogs, "GET", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
+		Utils::http_request(remoteAddr, remotePort, globalHeaders, queryWorklogs, "GET", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 		{
 			switch (code)
 			{
@@ -597,15 +545,11 @@ void Zeitkit::pull()
 
 				case happyhttp::OK:
 				{
-					char* errorPos = 0;
-					char* errorDesc = 0;
-					int errorLine = 0;
 					block_allocator allocator(1 << 10);
-
 					unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
-					json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
+					json_value* root = Utils::json_parse(buffer.get(), &allocator);
 
-					if (root && root->type == JSON_ARRAY)
+					if (root->type == JSON_ARRAY)
 					{
 						unsigned int count_updated = 0;
 						unsigned int count_deleted = 0;
@@ -657,8 +601,6 @@ void Zeitkit::pull()
 
 						cout << "Worklogs: " << count_updated << " updated and " << count_deleted << " deleted." << endl;
 					}
-					else
-						throw runtime_error(string("Malformed server response: ") + errorDesc);
 
 					break;
 				}
@@ -668,7 +610,7 @@ void Zeitkit::pull()
 			}
 		});
 
-		request(queryClients, "GET", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
+		Utils::http_request(remoteAddr, remotePort, globalHeaders, queryClients, "GET", reinterpret_cast<const unsigned char*>(query.c_str()), query.size(), [this](signed int code, const string& result)
 		{
 			switch (code)
 			{
@@ -677,15 +619,11 @@ void Zeitkit::pull()
 
 				case happyhttp::OK:
 				{
-					char* errorPos = 0;
-					char* errorDesc = 0;
-					int errorLine = 0;
 					block_allocator allocator(1 << 10);
-
 					unique_ptr<char, Utils::free_delete<char>> buffer(strdup(result.c_str()), Utils::free_delete<char>());
-					json_value* root = json_parse(buffer.get(), &errorPos, &errorDesc, &errorLine, &allocator);
+					json_value* root = Utils::json_parse(buffer.get(), &allocator);
 
-					if (root && root->type == JSON_ARRAY)
+					if (root->type == JSON_ARRAY)
 					{
 						unsigned int count_updated = 0;
 						unsigned int count_deleted = 0;
@@ -737,8 +675,6 @@ void Zeitkit::pull()
 
 						cout << "Clients: " << count_updated << " updated and " << count_deleted << " deleted." << endl;
 					}
-					else
-						throw runtime_error(string("Malformed server response: ") + errorDesc);
 
 					break;
 				}

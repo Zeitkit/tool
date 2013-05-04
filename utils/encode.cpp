@@ -4,7 +4,7 @@
 
 using namespace std;
 
-string Utils::JSON_encode(const string& input)
+string Utils::json_encode(const string& input)
 {
     ostringstream ss;
 

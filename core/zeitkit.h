@@ -36,7 +36,6 @@ class Zeitkit
 		Zeitkit(const Zeitkit&) = delete;
 		Zeitkit& operator=(const Zeitkit&) = delete;
 
-		void request(const char* route, const char* method, const unsigned char* query, unsigned int size, std::function<void(signed int, const std::string&)> result);
 		void write();
 		void authenticate(const std::string& input_mail, const std::string& input_pwd);
 		void register_account(const std::string& input_mail, const std::string& input_pwd);
