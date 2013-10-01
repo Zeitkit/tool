@@ -39,6 +39,7 @@
 	#include <arpa/inet.h>
 	#include <netdb.h>	// for gethostbyname()
 	#include <errno.h>
+	#include <unistd.h>
 #endif
 
 #ifdef WIN32

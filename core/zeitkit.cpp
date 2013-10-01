@@ -25,6 +25,7 @@
 #include <memory>
 #include <stdexcept>
 #include <ctime>
+#include <cstring>
 
 using namespace std;
 
@@ -35,8 +36,8 @@ const char* Zeitkit::fileNewWorklog = "worklogs/new.worklog";
 const char* Zeitkit::pathWorklogs = "worklogs";
 const char* Zeitkit::pathClients = "clients";
 
-const char* Zeitkit::remoteAddr = "foxtacles.com";
-const unsigned int Zeitkit::remotePort = 3000;
+const char* Zeitkit::remoteAddr = "zeitkit.com";
+const unsigned int Zeitkit::remotePort = 80;
 const char* Zeitkit::queryLogin = "/sessions";
 const char* Zeitkit::queryRegister = "/users";
 const char* Zeitkit::queryWorklogs = "/worklogs";
@@ -529,9 +530,14 @@ void Zeitkit::pull()
 
 	if (validate.empty())
 	{
+#ifdef __WIN32__
 		mkdir(pathWorklogs);
 		mkdir(pathClients);
-
+#else
+		constexpr auto DIR_MODE = S_IRWXU | S_IRGRP |  S_IXGRP | S_IROTH | S_IXOTH;
+		mkdir(pathWorklogs, DIR_MODE);
+		mkdir(pathClients, DIR_MODE);
+#endif
 		string query = string("{\"updated_since\": ") + Utils::inttostr(last_update) + ", \"access_token\": \"" + Utils::json_encode(auth_token) + "\"}";
 
 		unsigned int new_last_update = time(nullptr);

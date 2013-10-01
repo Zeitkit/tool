@@ -4,6 +4,7 @@
 	#include <winsock2.h>
 #else
 	#include <termios.h>
+	#include <unistd.h>
 #endif
 
 using namespace std;
