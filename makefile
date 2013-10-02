@@ -11,7 +11,7 @@ CFLAGS =
 RESINC = 
 LIBDIR = 
 LIB = 
-LDFLAGS = 
+LDFLAGS = -lstdc++
 
 INC_RELEASE =  $(INC) -I. -Iext
 CFLAGS_RELEASE =  $(CFLAGS) -O2 -pedantic-errors -pedantic -std=c++11 -Wfatal-errors -Wextra -Wall
