@@ -500,9 +500,9 @@ void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 	{
 		if (!summary)
 		{
-			cout << "Worklog summary: ";
+			cout << "Worklog summary (end with Ctrl-D): ";
 			cin.ignore();
-			getline(cin, summary_);
+			getline(cin, summary_, '\0');
 		}
 		else
 			summary_ = summary;
