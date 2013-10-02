@@ -497,7 +497,8 @@ void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 		if (!summary)
 		{
 			cout << "Worklog summary: ";
-			cin >> summary_;
+			cin.ignore();
+			getline(cin, summary_);
 		}
 		else
 			summary_ = summary;
