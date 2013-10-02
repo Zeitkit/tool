@@ -1,6 +1,8 @@
 #ifndef WORKLOG_H
 #define WORKLOG_H
 
+#include <utils/time.h>
+
 #include <yaml-cpp/yaml.h>
 #include <json.h>
 
@@ -51,8 +53,8 @@ namespace YAML
 			Node node;
 			node["id"] = rhs.GetId();
 			node["client_id"] = rhs.GetClientId();
-			node["start_time"] = rhs.GetStartTime();
-			node["end_time"] = rhs.GetEndTime();
+			node["start_time"] = Time::UnixtimeToLocaltime(rhs.GetStartTime());
+			node["end_time"] = Time::UnixtimeToLocaltime(rhs.GetEndTime());
 			node["summary"] = rhs.GetSummary();
 			return node;
 		}
@@ -68,8 +70,8 @@ namespace YAML
 
 			rhs.SetId(node["id"].as<signed int>());
 			rhs.SetClientId(node["client_id"].as<unsigned int>());
-			rhs.SetStartTime(node["start_time"].as<unsigned int>());
-			rhs.SetEndTime(node["end_time"].as<unsigned int>());
+			rhs.SetStartTime(Time::LocaltimeToUnixtime(node["start_time"].as<std::string>()));
+			rhs.SetEndTime(Time::LocaltimeToUnixtime(node["end_time"].as<std::string>()));
 			rhs.SetSummary(node["summary"].as<std::string>());
 			return true;
 		}

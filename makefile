@@ -24,7 +24,7 @@ OBJDIR_RELEASE = obj/Release
 DEP_RELEASE = 
 OUT_RELEASE = bin/Release/zeitkit
 
-OBJ_RELEASE = $(OBJDIR_RELEASE)/ext/stream.o $(OBJDIR_RELEASE)/ext/singledocparser.o $(OBJDIR_RELEASE)/ext/simplekey.o $(OBJDIR_RELEASE)/ext/scantoken.o $(OBJDIR_RELEASE)/ext/scantag.o $(OBJDIR_RELEASE)/ext/scanscalar.o $(OBJDIR_RELEASE)/ext/scanner.o $(OBJDIR_RELEASE)/ext/regex.o $(OBJDIR_RELEASE)/ext/parser.o $(OBJDIR_RELEASE)/utils/parser.o $(OBJDIR_RELEASE)/utils/input.o $(OBJDIR_RELEASE)/utils/http.o $(OBJDIR_RELEASE)/utils/encode.o $(OBJDIR_RELEASE)/utils/checksum.o $(OBJDIR_RELEASE)/main.o $(OBJDIR_RELEASE)/ext/tag.o $(OBJDIR_RELEASE)/ext/emitterstate.o $(OBJDIR_RELEASE)/ext/emitter.o $(OBJDIR_RELEASE)/ext/emitfromevents.o $(OBJDIR_RELEASE)/ext/emit.o $(OBJDIR_RELEASE)/ext/directives.o $(OBJDIR_RELEASE)/ext/convert.o $(OBJDIR_RELEASE)/ext/block_allocator.o $(OBJDIR_RELEASE)/ext/binary.o $(OBJDIR_RELEASE)/core/zeitkit.o $(OBJDIR_RELEASE)/core/worklog.o $(OBJDIR_RELEASE)/core/client.o $(OBJDIR_RELEASE)/ext/parse.o $(OBJDIR_RELEASE)/ext/ostream_wrapper.o $(OBJDIR_RELEASE)/ext/null.o $(OBJDIR_RELEASE)/ext/nodeevents.o $(OBJDIR_RELEASE)/ext/nodebuilder.o $(OBJDIR_RELEASE)/ext/node_data.o $(OBJDIR_RELEASE)/ext/node.o $(OBJDIR_RELEASE)/ext/memory.o $(OBJDIR_RELEASE)/ext/json.o $(OBJDIR_RELEASE)/ext/happyhttp.o $(OBJDIR_RELEASE)/ext/exp.o $(OBJDIR_RELEASE)/ext/emitterutils.o
+OBJ_RELEASE = $(OBJDIR_RELEASE)/ext/stream.o $(OBJDIR_RELEASE)/ext/singledocparser.o $(OBJDIR_RELEASE)/ext/simplekey.o $(OBJDIR_RELEASE)/ext/scantoken.o $(OBJDIR_RELEASE)/ext/scantag.o $(OBJDIR_RELEASE)/ext/scanscalar.o $(OBJDIR_RELEASE)/ext/scanner.o $(OBJDIR_RELEASE)/ext/regex.o $(OBJDIR_RELEASE)/ext/parser.o $(OBJDIR_RELEASE)/utils/parser.o $(OBJDIR_RELEASE)/utils/input.o $(OBJDIR_RELEASE)/utils/http.o $(OBJDIR_RELEASE)/utils/encode.o $(OBJDIR_RELEASE)/utils/checksum.o $(OBJDIR_RELEASE)/utils/time.o $(OBJDIR_RELEASE)/main.o $(OBJDIR_RELEASE)/ext/tag.o $(OBJDIR_RELEASE)/ext/emitterstate.o $(OBJDIR_RELEASE)/ext/emitter.o $(OBJDIR_RELEASE)/ext/emitfromevents.o $(OBJDIR_RELEASE)/ext/emit.o $(OBJDIR_RELEASE)/ext/directives.o $(OBJDIR_RELEASE)/ext/convert.o $(OBJDIR_RELEASE)/ext/block_allocator.o $(OBJDIR_RELEASE)/ext/binary.o $(OBJDIR_RELEASE)/core/zeitkit.o $(OBJDIR_RELEASE)/core/worklog.o $(OBJDIR_RELEASE)/core/client.o $(OBJDIR_RELEASE)/ext/parse.o $(OBJDIR_RELEASE)/ext/ostream_wrapper.o $(OBJDIR_RELEASE)/ext/null.o $(OBJDIR_RELEASE)/ext/nodeevents.o $(OBJDIR_RELEASE)/ext/nodebuilder.o $(OBJDIR_RELEASE)/ext/node_data.o $(OBJDIR_RELEASE)/ext/node.o $(OBJDIR_RELEASE)/ext/memory.o $(OBJDIR_RELEASE)/ext/json.o $(OBJDIR_RELEASE)/ext/happyhttp.o $(OBJDIR_RELEASE)/ext/exp.o $(OBJDIR_RELEASE)/ext/emitterutils.o
 
 all: release
 
@@ -85,6 +85,9 @@ $(OBJDIR_RELEASE)/utils/encode.o: utils/encode.cpp
 
 $(OBJDIR_RELEASE)/utils/checksum.o: utils/checksum.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c utils/checksum.cpp -o $(OBJDIR_RELEASE)/utils/checksum.o
+
+$(OBJDIR_RELEASE)/utils/checksum.o: utils/time.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c utils/time.cpp -o $(OBJDIR_RELEASE)/utils/time.o
 
 $(OBJDIR_RELEASE)/main.o: main.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c main.cpp -o $(OBJDIR_RELEASE)/main.o
