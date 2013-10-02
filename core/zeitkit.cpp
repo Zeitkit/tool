@@ -355,7 +355,7 @@ string Zeitkit::clients()
 			{
 				string file_ = string(pathClients) + "/" + file.first + ".client";
 				YAML::Node client = YAML::LoadFile(file_.c_str());
-				result += string("ID ") + client["id"].as<string>() + ", " + client["name"].as<string>() + ", hourly rate " + client["hourly_rate_cents"].as<string>() + " cents\n";
+				result += "[" + client["id"].as<string>() + "]\t" + client["name"].as<string>() + " (" + client["hourly_rate_cents"].as<string>() + " cents)\n";
 			}
 		}
 	}
@@ -483,7 +483,7 @@ void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 
 	if (!client_id)
 	{
-		cout << "Client ID: ";
+		cout << clients() << "\nClient ID: ";
 		cin >> client_id;
 	}
 
