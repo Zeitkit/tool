@@ -468,14 +468,18 @@ void Zeitkit::log_create(unsigned int start_time, unsigned int end_time, unsigne
 
 	if (!start_time)
 	{
-		cout << "Start time: ";
-		cin >> start_time;
+		cout << "Start time (YYYY-MM-DD-HH:MM:SS): ";
+		string start_time_;
+		getline(cin, start_time_);
+		start_time = Time::LocaltimeToUnixtime(start_time_);
 	}
 
 	if (!end_time)
 	{
-		cout << "End time: ";
-		cin >> end_time;
+		cout << "End time (YYYY-MM-DD-HH:MM:SS): ";
+		string end_time_;
+		getline(cin, end_time_);
+		end_time = Time::LocaltimeToUnixtime(end_time_);
 	}
 
 	if (end_time <= start_time)

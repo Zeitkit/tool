@@ -1,5 +1,6 @@
 #include <core/zeitkit.h>
 #include <utils/hash.h>
+#include <utils/time.h>
 
 #include <iostream>
 #include <unordered_map>
@@ -106,7 +107,7 @@ int main(int argc, char** argv)
 					case Utils::hash("commit"):
 					case Utils::hash("create"):
 					{
-						zeitkit.log_create(args.count("start") ? atoi(args["start"]) : 0, args.count("end") ? atoi(args["end"]) : 0, args.count("client") ? atoi(args["client"]) : 0, args["summary"], args["file"]);
+						zeitkit.log_create(args.count("start") ? Time::LocaltimeToUnixtime(args["start"]) : 0, args.count("end") ? Time::LocaltimeToUnixtime(args["end"]) : 0, args.count("client") ? atoi(args["client"]) : 0, args["summary"], args["file"]);
 						break;
 					}
 

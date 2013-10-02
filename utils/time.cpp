@@ -1,5 +1,7 @@
 #include <utils/time.h>
 
+#include <cstring>
+
 using namespace std;
 
 string Time::UnixtimeToLocaltime(time_t time)
@@ -15,6 +17,8 @@ string Time::UnixtimeToLocaltime(time_t time)
 time_t Time::LocaltimeToUnixtime(const std::string& time)
 {
 	tm tm_data;
+	memset(&tm_data, 0, sizeof(tm));
+
 	sscanf(time.c_str(), "%04d-%02d-%02d-%02d:%02d:%02d", &tm_data.tm_year, &tm_data.tm_mon, &tm_data.tm_mday, &tm_data.tm_hour, &tm_data.tm_min, &tm_data.tm_sec);
 
 	tm_data.tm_year -= 1900;
