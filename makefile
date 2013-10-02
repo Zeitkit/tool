@@ -86,7 +86,7 @@ $(OBJDIR_RELEASE)/utils/encode.o: utils/encode.cpp
 $(OBJDIR_RELEASE)/utils/checksum.o: utils/checksum.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c utils/checksum.cpp -o $(OBJDIR_RELEASE)/utils/checksum.o
 
-$(OBJDIR_RELEASE)/utils/checksum.o: utils/time.cpp
+$(OBJDIR_RELEASE)/utils/time.o: utils/time.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c utils/time.cpp -o $(OBJDIR_RELEASE)/utils/time.o
 
 $(OBJDIR_RELEASE)/main.o: main.cpp
